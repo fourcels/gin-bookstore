@@ -1,0 +1,8 @@
+version: '3'
+services:
+  web:
+    image: gin-bookstore:latest
+    environment:
+      - DATABASE_URL=postgres://gaohong:gaohong@192.168.10.200:5432/bookstore
+    ports:
+      - "8080:8080"
