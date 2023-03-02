@@ -33,19 +33,14 @@ func FindBooks(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	var pagination utils.Pagination
-	if err := utils.BindPagination(c, &pagination); err != nil {
+
+	var books []models.Book
+	if err := utils.Paginate(c, &models.Book{}, &books); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	var books []models.Book
-	if result := models.DB.Order(pagination.Sort).Limit(pagination.Size).Offset(pagination.Size * pagination.Page).Find(&books); result.Error != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"data": books})
+	c.JSON(http.StatusOK, books)
 }
 
 // POST /books
@@ -62,7 +57,7 @@ func CreateBook(c *gin.Context) {
 	book := models.Book{Title: input.Title, Author: input.Author}
 	models.DB.Create(&book)
 
-	c.JSON(http.StatusOK, gin.H{"data": book})
+	c.JSON(http.StatusOK, book)
 }
 
 // GET /books/:id
@@ -75,7 +70,7 @@ func FindBook(c *gin.Context) { // Get model if exist
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": book})
+	c.JSON(http.StatusOK, book)
 }
 
 // PATCH /books/:id
@@ -100,7 +95,7 @@ func UpdateBook(c *gin.Context) {
 		Author: input.Author,
 	})
 
-	c.JSON(http.StatusOK, gin.H{"data": book})
+	c.JSON(http.StatusOK, book)
 }
 
 // DELETE /books/:id
@@ -115,5 +110,5 @@ func DeleteBook(c *gin.Context) {
 
 	models.DB.Delete(&book)
 
-	c.JSON(http.StatusOK, gin.H{"data": true})
+	c.JSON(http.StatusOK, gin.H{"message": "ok"})
 }

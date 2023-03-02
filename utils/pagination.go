@@ -1,18 +1,35 @@
 package utils
 
 import (
+	"gin-bookstore/models"
+	"strconv"
+
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
-type Pagination struct {
-	Page int    `form:"page,default=0" binding:"min=0"`
-	Size int    `form:"size,default=10" binding:"min=1"`
-	Sort string `form:"sort,default=id"`
+func PaginateScope(c *gin.Context) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		page, _ := strconv.Atoi(c.DefaultQuery("page", "0"))
+		pageSize, _ := strconv.Atoi(c.DefaultQuery("size", "10"))
+		switch {
+		case pageSize > 100:
+			pageSize = 100
+		case pageSize <= 0:
+			pageSize = 10
+		}
+
+		sort := c.DefaultQuery("sort", "id")
+		offset := page * pageSize
+		return db.Order(sort).Offset(offset).Limit(pageSize)
+	}
 }
 
-func BindPagination(c *gin.Context, pagination *Pagination) error {
-	if err := c.ShouldBindQuery(pagination); err != nil {
+func Paginate(c *gin.Context, model any, res any) error {
+	var count int64
+	if err := models.DB.Model(model).Count(&count).Scopes(PaginateScope(c)).Find(res).Error; err != nil {
 		return err
 	}
+	c.Header("X-Total", strconv.FormatInt(count, 10))
 	return nil
 }
