@@ -14,11 +14,14 @@ func main() {
 
 	models.ConnectDatabase()
 
-	r.GET("/books", controllers.FindBooks)
-	r.POST("/books", controllers.CreateBook)
-	r.GET("/books/:id", controllers.FindBook)
-	r.PATCH("/books/:id", controllers.UpdateBook)
-	r.DELETE("/books/:id", controllers.DeleteBook)
+	books := r.Group("books")
+	{
+		books.GET("", controllers.FindBooks)
+		books.POST("", controllers.CreateBook)
+		books.GET(":id", controllers.FindBook)
+		books.PATCH(":id", controllers.UpdateBook)
+		books.DELETE(":id", controllers.DeleteBook)
+	}
 
 	r.Run()
 }

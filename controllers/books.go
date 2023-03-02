@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"gin-bookstore/utils"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -31,9 +33,17 @@ func FindBooks(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	var pagination utils.Pagination
+	if err := utils.BindPagination(c, &pagination); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	var books []models.Book
-	models.DB.Order("id").Find(&books)
+	if result := models.DB.Order(pagination.Sort).Limit(pagination.Size).Offset(pagination.Size * pagination.Page).Find(&books); result.Error != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": result.Error.Error()})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"data": books})
 }
