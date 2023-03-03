@@ -35,7 +35,7 @@ func FindBooks(c *gin.Context) {
 	}
 
 	var books []models.Book
-	if err := utils.Paginate(c, &models.Book{}, &books); err != nil {
+	if err := utils.Paginate(c, &models.Book{}, &books, "title"); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
