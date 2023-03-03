@@ -14,6 +14,8 @@ func main() {
 
 	models.ConnectDatabase()
 
+	r.Static("/swagger-ui", "./swagger")
+
 	books := r.Group("books")
 	{
 		books.GET("", controllers.FindBooks)
