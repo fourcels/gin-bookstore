@@ -1,4 +1,4 @@
-FROM golang:alpine AS builder
+FROM golang:1.20-alpine AS builder
 
 # 移动到工作目录：/build
 WORKDIR /build

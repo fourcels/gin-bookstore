@@ -8,6 +8,8 @@ require (
 	gorm.io/gorm v1.24.5
 )
 
+replace github.com/gin-gonic/gin => /Users/fourcels/Documents/GitHub/gin
+
 require (
 	github.com/bytedance/sonic v1.8.2 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
