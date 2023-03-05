@@ -9,6 +9,7 @@ import (
 
 	_ "time/tzdata"
 
+	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,9 +25,10 @@ func SwaggerFS() http.FileSystem {
 }
 
 func main() {
-	r := gin.Default()
-
 	models.ConnectDatabase()
+
+	r := gin.Default()
+	r.Use(gzip.Gzip(gzip.DefaultCompression))
 
 	// r.Static("/swagger-ui", "./swagger")
 	r.StaticFS("/swagger-ui", SwaggerFS())
