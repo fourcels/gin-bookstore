@@ -13,49 +13,51 @@ import (
 	"gorm.io/gorm"
 )
 
-func FilterScope(c *gin.Context, model any) func(db *gorm.DB) *gorm.DB {
+func FilterScope(c *gin.Context, fieldNames []string) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
 		filter := c.QueryMap("filter")
-		fieldNames := getFieldNames("filter", model)
 		if len(filter) == 0 || len(fieldNames) == 0 {
 			return db
 		}
 		for field, value := range filter {
-			addFilter(db, fieldNames, field, value)
+			arr := strings.Split(field, ":")
+			field = strings.TrimSpace(arr[0])
+			if slices.Contains(fieldNames, field) {
+				var operator string
+				if len(arr) > 1 {
+					operator = strings.TrimSpace(arr[1])
+				}
+				addFilter(db, field, operator, strings.TrimSpace(value))
+			}
 		}
 		return db
 	}
 }
 
-func addFilter(db *gorm.DB, fieldNames []string, field, value string) {
-	split := strings.Split(field, ":")
-	if slices.Contains(fieldNames, split[0]) {
-		if len(split) == 1 {
-			db.Where(fmt.Sprintf("%s = ?", split[0]), value)
-		} else if len(split) >= 2 {
-			switch split[1] {
-			case "eq":
-				db.Where(fmt.Sprintf("%s = ?", split[0]), value)
-			case "ne":
-				db.Where(fmt.Sprintf("%s <> ?", split[0]), value)
-			case "lt":
-				db.Where(fmt.Sprintf("%s < ?", split[0]), value)
-			case "le":
-				db.Where(fmt.Sprintf("%s <= ?", split[0]), value)
-			case "gt":
-				db.Where(fmt.Sprintf("%s > ?", split[0]), value)
-			case "ge":
-				db.Where(fmt.Sprintf("%s >= ?", split[0]), value)
-			case "between":
-				db.Where(fmt.Sprintf("%s BETWEEN ? AND ?", split[0]), toAnyList(strings.Split(value, ","))...)
-			case "contains", "like":
-				db.Where(fmt.Sprintf("%s LIKE ?", split[0]), "%"+value+"%")
-			case "startsWith":
-				db.Where(fmt.Sprintf("%s = ?", split[0]), "%"+value)
-			case "in":
-				db.Where(fmt.Sprintf("%s IN ?", split[0]), strings.Split(value, ","))
-			}
-		}
+func addFilter(db *gorm.DB, field, operator, value string) {
+	switch operator {
+	case "eq":
+		db.Where(fmt.Sprintf("%s = ?", field), value)
+	case "ne":
+		db.Where(fmt.Sprintf("%s <> ?", field), value)
+	case "lt":
+		db.Where(fmt.Sprintf("%s < ?", field), value)
+	case "le":
+		db.Where(fmt.Sprintf("%s <= ?", field), value)
+	case "gt":
+		db.Where(fmt.Sprintf("%s > ?", field), value)
+	case "ge":
+		db.Where(fmt.Sprintf("%s >= ?", field), value)
+	case "between":
+		db.Where(fmt.Sprintf("%s BETWEEN ? AND ?", field), toAnyList(strings.Split(value, ","))...)
+	case "contains", "like":
+		db.Where(fmt.Sprintf("%s LIKE ?", field), "%"+value+"%")
+	case "startsWith":
+		db.Where(fmt.Sprintf("%s = ?", field), "%"+value)
+	case "in":
+		db.Where(fmt.Sprintf("%s IN ?", field), strings.Split(value, ","))
+	default:
+		db.Where(fmt.Sprintf("%s = ?", field), value)
 	}
 }
 
@@ -67,10 +69,9 @@ func toAnyList[T any](input []T) []any {
 	return list
 }
 
-func SearchScope(c *gin.Context, model any) func(db *gorm.DB) *gorm.DB {
+func SearchScope(c *gin.Context, fieldNames []string) func(db *gorm.DB) *gorm.DB {
 	return func(db *gorm.DB) *gorm.DB {
-		search := c.Query("search")
-		fieldNames := getFieldNames("search", model)
+		search := strings.TrimSpace(c.Query("search"))
 		if len(search) == 0 || len(fieldNames) == 0 {
 			return db
 		}
@@ -81,37 +82,6 @@ func SearchScope(c *gin.Context, model any) func(db *gorm.DB) *gorm.DB {
 		}
 		return db.Where(db2)
 	}
-}
-
-func getFieldNames(name string, model any) []string {
-	fieldNames := []string{}
-	t := reflect.TypeOf(model).Elem()
-	for i := 0; i < t.NumField(); i++ {
-		// Get the field, returns https://golang.org/pkg/reflect/#StructField
-		field := t.Field(i)
-
-		// Get the field tag value
-		tag := field.Tag.Get("pagination")
-		if len(tag) > 0 {
-			options := strings.Split(tag, ",")
-			var fieldName string
-			for _, option := range options {
-				kv := strings.Split(option, "=")
-				if strings.TrimSpace(kv[0]) != name {
-					continue
-				}
-				if len(kv) == 1 {
-					fieldName = strcase.ToSnake(field.Name)
-				} else if len(kv) >= 2 {
-					fieldName = strings.TrimSpace(kv[1])
-				}
-			}
-			if len(fieldName) > 0 {
-				fieldNames = append(fieldNames, fieldName)
-			}
-		}
-	}
-	return fieldNames
 }
 
 func PaginateScope(c *gin.Context) func(db *gorm.DB) *gorm.DB {
@@ -131,9 +101,49 @@ func PaginateScope(c *gin.Context) func(db *gorm.DB) *gorm.DB {
 	}
 }
 
+type PaginationConfig struct {
+	Filter []string
+	Search []string
+}
+
+func getConfig(model any) PaginationConfig {
+	var config PaginationConfig
+	t := reflect.TypeOf(model).Elem()
+	for i := 0; i < t.NumField(); i++ {
+		// Get the field, returns https://golang.org/pkg/reflect/#StructField
+		field := t.Field(i)
+
+		// Get the field tag value
+		tag := field.Tag.Get("pagination")
+		if len(tag) > 0 {
+			items := strings.Split(tag, ",")
+			for _, item := range items {
+				arr := strings.Split(item, "=")
+				var fieldName string
+				if len(arr) > 1 {
+					fieldName = strings.TrimSpace(arr[1])
+				} else {
+					fieldName = strcase.ToSnake(field.Name)
+				}
+				switch strings.TrimSpace(arr[0]) {
+				case "filter":
+					config.Filter = append(config.Filter, fieldName)
+				case "search":
+					config.Search = append(config.Search, fieldName)
+				}
+			}
+
+		}
+	}
+
+	return config
+
+}
+
 func Paginate(c *gin.Context, model any, res any) error {
 	var count int64
-	if err := models.DB.Model(model).Scopes(SearchScope(c, model), FilterScope(c, model)).Count(&count).Scopes(PaginateScope(c)).Find(res).Error; err != nil {
+	config := getConfig(model)
+	if err := models.DB.Model(model).Scopes(SearchScope(c, config.Search), FilterScope(c, config.Filter)).Count(&count).Scopes(PaginateScope(c)).Find(res).Error; err != nil {
 		return err
 	}
 	c.Header("X-Total", strconv.FormatInt(count, 10))
