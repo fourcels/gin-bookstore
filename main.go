@@ -9,6 +9,7 @@ import (
 
 	_ "time/tzdata"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-gonic/gin"
 )
@@ -28,6 +29,9 @@ func main() {
 	models.ConnectDatabase()
 
 	r := gin.Default()
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowOrigins = []string{"*"}
+	r.Use(cors.New(corsConfig))
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
 
 	// r.Static("/swagger-ui", "./swagger")
