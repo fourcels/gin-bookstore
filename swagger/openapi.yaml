@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Bookstore API
   description: |-
-    This is a sample Bookstore Server based on gin, gorm
+    This is a sample Bookstore Server
   termsOfService: http://swagger.io/terms/
   contact:
     email: apiteam@swagger.io
@@ -25,51 +25,17 @@ paths:
       description: List all books
       operationId: listBook
       parameters:
-        - in: query
-          name: page
-          schema:
-            type: integer
-            minimum: 0
-            default: 0
-          required: false
-          description: The number of page.
-        - in: query
-          name: size
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 10
-          required: false
-          description: The number of items to return.
-        - in: query
-          name: sort
-          schema:
-            type: string
-            default: id
-          required: false
-          description: The sort of items.
-        - in: query
-          name: search
-          schema:
-            type: string
-          required: false
-          description: Search keywords.
-        - in: query
-          name: filter
-          style: deepObject
-          schema:
-            type: object
-          required: false
-          description: Filter.
+        - $ref: "#/components/parameters/pageParam"
+        - $ref: "#/components/parameters/sizeParam"
+        - $ref: "#/components/parameters/sortParam"
+        - $ref: "#/components/parameters/searchParam"
+        - $ref: "#/components/parameters/filterParam"
       responses:
         "200":
           description: Successful operation
           headers:
             X-Total:
-              schema:
-                type: integer
-              description: Total count.
+              $ref: "#/components/headers/X-Total"
           content:
             application/json:
               schema:
@@ -81,11 +47,11 @@ paths:
     post:
       tags:
         - book
-      summary: Add a new book to the store
-      description: Add a new book to the store
+      summary: Add a new book
+      description: Add a new book
       operationId: addBook
       requestBody:
-        description: Create a new book in the store
+        description: Add a new book
         content:
           application/json:
             schema:
@@ -102,20 +68,14 @@ paths:
           description: Invalid input
 
   /books/{id}:
+    parameters:
+      - $ref: "#/components/parameters/idParam"
     get:
       tags:
         - book
       summary: Show book by id
       description: List all books
       operationId: showBook
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: integer
-            format: int64
-          required: true
-          description: Book id.
 
       responses:
         "200":
@@ -132,14 +92,6 @@ paths:
       summary: Update book by id
       description: Update book by id
       operationId: updateBook
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: integer
-            format: int64
-          required: true
-          description: Book id.
       requestBody:
         description: Update a book in the store
         content:
@@ -162,16 +114,7 @@ paths:
         - book
       summary: Delete book by ID
       operationId: deleteBook
-      parameters:
-        - name: id
-          in: path
-          description: ID of the book that needs to be deleted
-          required: true
-          style: simple
-          explode: false
-          schema:
-            type: integer
-            format: int64
+
       responses:
         "200":
           description: Successful operation
@@ -182,9 +125,85 @@ paths:
         "400":
           description: Invalid ID supplied
         "404":
-          description: Order not found
+          description: Book not found
 
 components:
+  headers:
+    X-Total:
+      schema:
+        type: integer
+      description: Total count.
+  parameters:
+    idParam:
+      name: id
+      in: path
+      description: ID of the item
+      required: true
+      schema:
+        type: integer
+        format: int64
+    pageParam:
+      in: query
+      name: page
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      required: false
+      description: The number of page.
+    sizeParam:
+      in: query
+      name: size
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+      required: false
+      description: The number of items to return.
+    sortParam:
+      in: query
+      name: sort
+      schema:
+        type: string
+      required: false
+      description: The sort of items.
+      examples:
+        none:
+          value:
+        asc:
+          value: id
+        desc:
+          value: -id
+        multi:
+          value: id,created_at
+
+    searchParam:
+      in: query
+      name: search
+      schema:
+        type: string
+      required: false
+      description: Search by keywords.
+    filterParam:
+      in: query
+      name: filter
+      style: deepObject
+      schema:
+        type: object
+      required: false
+      description: >
+        Filter by fields
+        with `operator`: eq, ne, lt, le, gt, ge, between, contains, like, startsWith, in
+      examples:
+        none:
+          value:
+        eq:
+          value:
+            title: title
+        operator:
+          value:
+            title:contains: title
   schemas:
     Book:
       type: object

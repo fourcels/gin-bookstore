@@ -8,12 +8,10 @@ window.onload = function () {
     deepLinking: true,
     presets: [
       SwaggerUIBundle.presets.apis,
-      SwaggerUIStandalonePreset
     ],
     plugins: [
       SwaggerUIBundle.plugins.DownloadUrl
     ],
-    layout: "StandaloneLayout"
   });
 
   //</editor-fold>
