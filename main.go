@@ -29,14 +29,14 @@ func main() {
 	models.ConnectDatabase()
 
 	r := gin.Default()
-	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = []string{"*"}
-	r.Use(cors.New(corsConfig))
 	r.Use(gzip.Gzip(gzip.DefaultCompression))
 
 	// r.Static("/swagger-ui", "./swagger")
 	r.StaticFS("/swagger-ui", SwaggerFS())
 
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowOrigins = []string{"*"}
+	r.Use(cors.New(corsConfig))
 	books := r.Group("books")
 	{
 		books.GET("", controllers.FindBooks)
